@@ -26,12 +26,12 @@ func simple() {
 	// {"time":"2024-01-27T00:39:43.120848+03:00","level":"INFO","msg":"Hello, World!"}
 
 	ctx := context.Background()
-	logger = WithAttrs(ctx, StringAttr("hello", "world"))
+	logger = WithAttrsCtx(ctx, StringAttr("hello", "world"))
 	logger.Info("OK")
 
 	// {"time":"2024-01-27T00:44:55.083891+03:00","level":"INFO","source":{"function":"logging.simple","file":"theartofdevelopment/libs/logging/example.go","line":30},"msg":"OK","hello":"world"}
 
-	ctx = ContextWithLogger(ctx, WithAttrs(ctx, StringAttr("where?", "from context!")))
+	ctx = ContextWithLogger(ctx, WithAttrsCtx(ctx, StringAttr("where?", "from context!")))
 	fromContext(ctx)
 }
 

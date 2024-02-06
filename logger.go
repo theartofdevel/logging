@@ -87,9 +87,18 @@ func WithSetDefault(setDefault bool) LoggerOption {
 	}
 }
 
-// WithAttrs returns logger with attributes.
-func WithAttrs(ctx context.Context, attrs ...Attr) *Logger {
+// WithAttrsCtx returns logger with attributes from ctx
+func WithAttrsCtx(ctx context.Context, attrs ...Attr) *Logger {
 	logger := L(ctx)
+	for _, attr := range attrs {
+		logger = logger.With(attr)
+	}
+
+	return logger
+}
+
+// WithAttrs returns logger with attributes.
+func WithAttrs(logger *Logger, attrs ...Attr) *Logger {
 	for _, attr := range attrs {
 		logger = logger.With(attr)
 	}
