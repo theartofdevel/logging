@@ -2,23 +2,34 @@ package logging
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
-	defaultLevel      = LevelInfo
-	defaultAddSource  = true
-	defaultIsJSON     = true
-	defaultSetDefault = true
+	defaultLevel             = LevelInfo
+	defaultAddSource         = true
+	defaultIsJSON            = true
+	defaultSetDefault        = true
+	defaultLogFile           = ""
+	defaultLogFileMaxSizeMB  = 10
+	defaultLogFileMaxBackups = 3
+	defaultLogFileMaxAgeDays = 14
 )
 
 func NewLogger(opts ...LoggerOption) *Logger {
 	config := &LoggerOptions{
-		Level:      defaultLevel,
-		AddSource:  defaultAddSource,
-		IsJSON:     defaultIsJSON,
-		SetDefault: defaultSetDefault,
+		Level:             defaultLevel,
+		AddSource:         defaultAddSource,
+		IsJSON:            defaultIsJSON,
+		SetDefault:        defaultSetDefault,
+		LogFilePath:       defaultLogFile,
+		LogFileMaxSizeMB:  defaultLogFileMaxSizeMB,
+		LogFileMaxBackups: defaultLogFileMaxBackups,
+		LogFileMaxAgeDays: defaultLogFileMaxAgeDays,
 	}
 
 	for _, opt := range opts {
@@ -30,10 +41,24 @@ func NewLogger(opts ...LoggerOption) *Logger {
 		Level:     config.Level,
 	}
 
-	var h Handler = NewTextHandler(os.Stdout, options)
+	// by default we write to stdout.
+	var w io.Writer = os.Stdout
+
+	// file or stdout.
+	if config.LogFilePath != "" {
+		w = &lumberjack.Logger{
+			Filename:   config.LogFilePath,
+			MaxSize:    config.LogFileMaxSizeMB,
+			MaxBackups: config.LogFileMaxBackups,
+			MaxAge:     config.LogFileMaxAgeDays,
+			Compress:   config.LogFileCompress,
+		}
+	}
+
+	var h Handler = NewTextHandler(w, options)
 
 	if config.IsJSON {
-		h = NewJSONHandler(os.Stdout, options)
+		h = NewJSONHandler(w, options)
 	}
 
 	logger := New(h)
@@ -46,10 +71,15 @@ func NewLogger(opts ...LoggerOption) *Logger {
 }
 
 type LoggerOptions struct {
-	Level      Level
-	AddSource  bool
-	IsJSON     bool
-	SetDefault bool
+	Level             Level
+	AddSource         bool
+	IsJSON            bool
+	SetDefault        bool
+	LogFilePath       string
+	LogFileMaxSizeMB  int
+	LogFileMaxBackups int
+	LogFileMaxAgeDays int
+	LogFileCompress   bool
 }
 
 type LoggerOption func(*LoggerOptions)
@@ -84,6 +114,41 @@ func WithIsJSON(isJSON bool) LoggerOption {
 func WithSetDefault(setDefault bool) LoggerOption {
 	return func(o *LoggerOptions) {
 		o.SetDefault = setDefault
+	}
+}
+
+// WithLogFilePath logger option sets the file where logs will be written.
+func WithLogFilePath(logFilePath string) LoggerOption {
+	return func(o *LoggerOptions) {
+		o.LogFilePath = logFilePath
+	}
+}
+
+// WithLogFileMaxSizeMB logger option sets the maximum file size for rotation.
+func WithLogFileMaxSizeMB(maxSize int) LoggerOption {
+	return func(o *LoggerOptions) {
+		o.LogFileMaxSizeMB = maxSize
+	}
+}
+
+// WithLogFileMaxBackups logger option sets the number of backup files to retain.
+func WithLogFileMaxBackups(maxBackups int) LoggerOption {
+	return func(o *LoggerOptions) {
+		o.LogFileMaxBackups = maxBackups
+	}
+}
+
+// WithLogFileMaxAgeDays logger option sets the maximum age of the log files.
+func WithLogFileMaxAgeDays(maxAge int) LoggerOption {
+	return func(o *LoggerOptions) {
+		o.LogFileMaxAgeDays = maxAge
+	}
+}
+
+// WithLogFileCompress logger options set needs compression.
+func WithLogFileCompress(compression bool) LoggerOption {
+	return func(o *LoggerOptions) {
+		o.LogFileCompress = compression
 	}
 }
 
