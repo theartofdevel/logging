@@ -58,5 +58,9 @@ func TimeAttr(key string, time time.Time) Attr {
 }
 
 func ErrAttr(err error) Attr {
+	if err == nil {
+		return slog.String("error", "nil")
+	}
+
 	return slog.String("error", err.Error())
 }
